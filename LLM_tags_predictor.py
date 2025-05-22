@@ -4,9 +4,11 @@ import streamlit as st
 import requests
 from sklearn.metrics import jaccard_score
 from sklearn.preprocessing import MultiLabelBinarizer
+import pickle
+import re
 
 OLLAMA_URL = "http://localhost:11434/api/generate"
-MODEL_NAME = "deepseek-r1:1.5b"
+MODEL_NAME = "mistral:7b"
 
 # Liste fixe de tags possibles
 TAG_VOCAB = [
@@ -23,24 +25,26 @@ TAG_VOCAB = [
 ]
 
 def ask_ollama(question_text, tag_vocab):
-    tag_list = ", ".join(tag_vocab)
+    tag_list = ', '.join(f'"{tag}"' for tag in tag_vocab)
     prompt = f"""
 You are a StackOverflow tags predictor.
 
-Your task is to select the most relevant tags for a question.
+Your task is to output a short list of the most relevant tags for a programming question.
 
-Instructions:
-- Only use tags from this list: [{tag_list}]
-- Select between 1 and 5 relevant tags
-- Format: comma-separated list of tags
-- No explanation, no numbering, no repetition
+Constraints:
+- Use only tags from this list: [{tag_list}]
+- Select between 1 and 5 tags
+- Do NOT return JSON, do NOT return numbered lists, do NOT use brackets or quotes
+- Your output MUST be a simple, comma-separated list of tags, all in lowercase
+
+Example output: python, pandas, arrays
 
 Question:
 ---
 {question_text}
 ---
 
-Respond with tags only:
+Tags:
 """
 
     response = requests.post(OLLAMA_URL, json={
@@ -51,12 +55,16 @@ Respond with tags only:
 
     result = response.json()
     output_text = result.get("response", "").lower().strip()
-    raw_tags = output_text.lower().split(',')
-    predicted_tags = list(dict.fromkeys([tag.strip() for tag in raw_tags if tag.strip() in tag_vocab]))[:5]
+
+    # Nettoyage de la sortie pour éviter les formats indésirables (brackets, quotes, etc.)
+    output_text = re.sub(r'[\[\]"\']', '', output_text)
+    raw_tags = [tag.strip() for tag in output_text.split(',')]
+    predicted_tags = list(dict.fromkeys([tag for tag in raw_tags if tag in tag_vocab]))[:5]
+    
     return predicted_tags
 
 def compute_jaccard(true_tags, predicted_tags, all_tags):
-    mlb = MultiLabelBinarizer(classes=all_tags)
+    mlb = pickle.load(open("mlb_use.pkl", "rb"))
     y_true = mlb.fit_transform([true_tags])
     y_pred = mlb.transform([predicted_tags])
     return jaccard_score(y_true, y_pred, average='samples')
