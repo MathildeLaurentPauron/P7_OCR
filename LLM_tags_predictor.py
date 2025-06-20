@@ -8,7 +8,7 @@ import pickle
 import re
 
 OLLAMA_URL = "http://localhost:11434/api/generate"
-MODEL_NAME = "deepseek-r1:14b"
+MODEL_NAME = "llama3:8b"
 
 # Liste fixe de tags possibles
 TAG_VOCAB = [
