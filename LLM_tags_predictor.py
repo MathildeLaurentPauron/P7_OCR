@@ -113,9 +113,9 @@ Tags:
     
     return predicted_tags
 
-def compute_jaccard(true_tags, predicted_tags, all_tags):
+def compute_jaccard(true_tags, predicted_tags):
     mlb = pickle.load(open("mlb_use.pkl", "rb"))
-    y_true = mlb.fit_transform([true_tags])
+    y_true = mlb.transform([true_tags])
     y_pred = mlb.transform([predicted_tags])
     return jaccard_score(y_true, y_pred, average='samples')
 
@@ -133,7 +133,7 @@ if st.button("Prédire les tags"):
 
     if true_tags_input:
         true_tags = [tag.strip().lower() for tag in true_tags_input.split(",") if tag.strip()]
-        score = compute_jaccard(true_tags, predicted_tags, TAG_VOCAB)
+        score = compute_jaccard(true_tags, predicted_tags)
         st.subheader("📊 Jaccard Score")
         st.write(f"{score:.4f}")
     else:
