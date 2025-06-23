@@ -2,7 +2,7 @@
 
 import streamlit as st
 import requests
-from sklearn.metrics import jaccard_score
+from sklearn.metrics import jaccard_score, f1_score
 from sklearn.preprocessing import MultiLabelBinarizer
 import pickle
 import re
@@ -119,6 +119,12 @@ def compute_jaccard(true_tags, predicted_tags):
     y_pred = mlb.transform([predicted_tags])
     return jaccard_score(y_true, y_pred, average='samples')
 
+def compute_f1score(true_tags, predicted_tags):
+    mlb = pickle.load(open("mlb_use.pkl", "rb"))
+    y_true = mlb.transform([true_tags])
+    y_pred = mlb.transform([predicted_tags])
+    return f1_score(y_true, y_pred, average='macro')
+
 # Interface Streamlit
 st.title("🧠 Prédiction de Tags StackOverflow par LLM (via Ollama)")
 
@@ -133,8 +139,11 @@ if st.button("Prédire les tags"):
 
     if true_tags_input:
         true_tags = [tag.strip().lower() for tag in true_tags_input.split(",") if tag.strip()]
-        score = compute_jaccard(true_tags, predicted_tags)
+        score_jacc = compute_jaccard(true_tags, predicted_tags)
+        score_f1 = compute_f1score(true_tags, predicted_tags)
         st.subheader("📊 Jaccard Score")
-        st.write(f"{score:.4f}")
+        st.write(f"{score_jacc:.4f}")
+        st.subheader("📊 F1 Score")
+        st.write(f"{score_f1:.4f}")
     else:
         st.info("💡 Entrez les tags attendus (séparés par des virgules) pour voir le Jaccard score.")
